@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PDF to Markdown</title>
+    <meta name="description" content="Convert PDF files to Markdown entirely in your browser. No upload, no server, no storage." />
+    <!--
+      The app never talks to the network. This policy makes that a rule the
+      browser enforces rather than a promise you have to take on trust.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' blob:; worker-src 'self' blob:; style-src 'self'; img-src 'self' data:; connect-src 'self' blob: data:; font-src 'self'; base-uri 'none'; form-action 'none'"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%84%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <h1>PDF <span aria-hidden="true">→</span><span class="sr-only">to</span> Markdown</h1>
+      <p class="tagline">
+        Converted in your browser. Nothing is uploaded, nothing is stored, and the page never touches the network.
+      </p>
+    </header>
+
+    <main>
+      <section
+        id="dropzone"
+        class="dropzone"
+        tabindex="0"
+        role="button"
+        aria-label="Choose PDF files or drop them here"
+      >
+        <svg class="dropzone-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" />
+          <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+        </svg>
+        <p class="dropzone-title">Drop PDFs here</p>
+        <p class="dropzone-hint">or click to choose files &middot; multiple files welcome</p>
+        <input id="file-input" type="file" accept="application/pdf,.pdf" multiple hidden />
+      </section>
+
+      <details class="options" id="options">
+        <summary>Conversion options</summary>
+        <div class="options-grid">
+          <label><input type="checkbox" data-option="headings" checked /> <span>Headings from font size</span></label>
+          <label><input type="checkbox" data-option="lists" checked /> <span>Bullet &amp; numbered lists</span></label>
+          <label><input type="checkbox" data-option="tables" checked /> <span>Tables</span></label>
+          <label><input type="checkbox" data-option="emphasis" checked /> <span>Bold, italic &amp; code</span></label>
+          <label><input type="checkbox" data-option="links" checked /> <span>Hyperlinks</span></label>
+          <label><input type="checkbox" data-option="dehyphenate" checked /> <span>Rejoin hyphenated words</span></label>
+          <label><input type="checkbox" data-option="stripRunningHeads" checked /> <span>Drop headers &amp; footers</span></label>
+          <label><input type="checkbox" data-option="columns" checked /> <span>Two-column layouts</span></label>
+          <label><input type="checkbox" data-option="pageBreaks" /> <span>Mark page breaks</span></label>
+          <label><input type="checkbox" data-option="frontMatter" /> <span>YAML front matter</span></label>
+        </div>
+      </details>
+
+      <section id="results" class="results" aria-live="polite"></section>
+
+      <div id="bulk" class="bulk" hidden>
+        <button type="button" id="download-all" class="button primary">Download all</button>
+        <button type="button" id="clear-all" class="button">Clear</button>
+      </div>
+    </main>
+
+    <footer class="colophon">
+      <p>
+        Runs offline. Powered by
+        <a href="https://mozilla.github.io/pdf.js/" rel="noreferrer noopener">pdf.js</a>, bundled locally.
+      </p>
+      <p id="engine-status" class="engine-status">Loading engine&hellip;</p>
+    </footer>
+
+    <template id="result-template">
+      <article class="result">
+        <header class="result-head">
+          <div class="result-title">
+            <h2 class="result-name"></h2>
+            <p class="result-meta"></p>
+          </div>
+          <div class="result-actions">
+            <button type="button" class="button" data-action="copy">Copy</button>
+            <button type="button" class="button primary" data-action="download">Download .md</button>
+          </div>
+        </header>
+        <p class="result-note" hidden></p>
+        <div class="progress"><div class="progress-bar"></div></div>
+        <pre class="result-body"><code></code></pre>
+      </article>
+    </template>
+
+    <script type="module" src="src/app.js"></script>
+  </body>
+</html>

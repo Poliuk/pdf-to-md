@@ -1,0 +1,15 @@
+{
+  "name": "pdf-to-md",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Convert PDF files to Markdown entirely in the browser. No upload, no server, no storage.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "node serve.mjs",
+    "build": "node build.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
