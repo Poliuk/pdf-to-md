@@ -33,6 +33,8 @@ const BULLET_RE = /^[ \t]*([•▪▫◦‣·⁃∙○●■□❑✓✔–—*+
 const ORDERED_RE = /^[ \t]*\(?(\d{1,3})[.)][ \t]+/;
 const PAGE_NUM_RE = /^(page\s*)?[-–—(\[]?\s*(\d{1,4}|[ivxlcdm]{1,7})\s*[)\]–—-]?(\s*(of|\/)\s*\d{1,4})?$/i;
 const SENTENCE_END_RE = /[.!?:;"”')\]]\s*$/;
+/** A line ending inside a web address, which must be rejoined verbatim. */
+const URL_TAIL_RE = /(https?:\/\/|www\.)\S*\s*$/i;
 
 /**
  * Convert a PDF into Markdown.
@@ -530,7 +532,12 @@ function assignHeadings(flow, metrics) {
     if (line.cells.length > 1) return;
     if (BULLET_RE.test(line.text) || ORDERED_RE.test(line.text)) return;
     const next = flow[i + 1];
-    if (next && !next.bold && next.page === line.page) line.heading = boldLevel;
+    if (!next || next.bold || next.page !== line.page) return;
+    // A heading stands apart from the text beneath it. A bold sentence that
+    // merely opens a paragraph runs on at the normal body leading, so the
+    // spacing after the line is what tells the two apart.
+    if (next.gapBefore !== null && next.gapBefore <= metrics.lineGap * 1.15) return;
+    line.heading = boldLevel;
   });
 }
 
@@ -612,8 +619,21 @@ function buildNodes(flow, metrics, opts) {
     }
 
     if (line.heading) {
-      close();
-      nodes.push({ type: 'heading', level: line.heading, line });
+      // A long heading wraps onto further lines; they belong to one heading.
+      // Its own font size sets the scale, since headings lead wider than body
+      // text does.
+      const wraps =
+        current?.type === 'heading' &&
+        current.level === line.heading &&
+        line.gapBefore !== null &&
+        line.gapBefore < line.size * 1.7;
+      if (wraps) {
+        current.lines.push(line);
+      } else {
+        close();
+        current = { type: 'heading', level: line.heading, lines: [line] };
+        nodes.push(current);
+      }
       continue;
     }
 
@@ -686,7 +706,6 @@ function insertPageBreaks(nodes) {
 }
 
 function firstLine(node) {
-  if (node.type === 'heading') return node.line;
   if (node.type === 'table') return node.rows[0];
   if (node.type === 'list') return node.items[0].lines[0];
   return node.lines?.[0];
@@ -728,7 +747,8 @@ function renderNode(node, opts) {
     case 'pagebreak':
       return `<!-- page ${node.page} -->`;
     case 'heading': {
-      const text = renderRuns(node.line.runs, { ...opts, emphasis: false }).trim();
+      // Emphasis is off: the heading level already carries the weight.
+      const text = joinLines(node.lines, { ...opts, emphasis: false });
       return text ? `${'#'.repeat(node.level)} ${text}` : '';
     }
     case 'code': {
@@ -783,23 +803,49 @@ function renderTable(node, opts) {
   return lines.join('\n');
 }
 
-/** Join the lines of a paragraph, undoing PDF line wrapping. */
+/**
+ * Join the lines of a block, undoing PDF line wrapping.
+ *
+ * Runs are stitched together across the line break before anything is
+ * rendered, so a link or a bold phrase that wraps comes out as one span
+ * rather than two abutting ones.
+ */
 function joinLines(lines, opts) {
-  let out = '';
-  for (const line of lines) {
-    const piece = renderRuns(line.runs, opts);
-    if (!out) {
-      out = piece;
-      continue;
-    }
-    // "environ-\nment" is one word; "well-\nknown" keeps its hyphen.
-    if (opts.dehyphenate && /[a-zÀ-ɏ]-$/.test(out) && /^[a-zÀ-ɏ]/.test(piece.trimStart())) {
-      out = out.replace(/-$/, '') + piece.trimStart();
+  const runs = [];
+  const push = (run) => {
+    const last = runs[runs.length - 1];
+    if (last && last.bold === run.bold && last.italic === run.italic && last.mono === run.mono && last.url === run.url) {
+      last.text += run.text;
     } else {
-      out = `${out.replace(/\s+$/, '')} ${piece.trimStart()}`;
+      runs.push({ ...run });
     }
+  };
+
+  for (const line of lines) {
+    const lineRuns = line.runs.filter((run) => run.text);
+    if (!lineRuns.length) continue;
+    const previous = runs[runs.length - 1];
+
+    if (previous) {
+      const opening = lineRuns[0].text.replace(/^\s+/, '');
+      if (URL_TAIL_RE.test(previous.text)) {
+        // A URL broken over two lines takes neither a space nor a hyphen fix:
+        // its hyphens are part of the address.
+        previous.text = previous.text.replace(/\s+$/, '');
+      } else if (opts.dehyphenate && /[a-zÀ-ɏ]-\s*$/.test(previous.text) && /^[a-zÀ-ɏ]/.test(opening)) {
+        // "environ-\nment" is one word; "well-\nknown" keeps its hyphen.
+        previous.text = previous.text.replace(/\s*-\s*$/, '');
+      } else {
+        previous.text = `${previous.text.replace(/\s+$/, '')} `;
+      }
+    }
+
+    lineRuns.forEach((run, i) => {
+      push(i === 0 && previous ? { ...run, text: run.text.replace(/^\s+/, '') } : run);
+    });
   }
-  return out.trim();
+
+  return renderRuns(runs, opts).trim();
 }
 
 function renderRuns(runs, opts) {
