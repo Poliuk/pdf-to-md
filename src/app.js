@@ -10,22 +10,15 @@ const fileInput = document.getElementById('file-input');
 const results = document.getElementById('results');
 const bulk = document.getElementById('bulk');
 const template = document.getElementById('result-template');
-const engineStatus = document.getElementById('engine-status');
 
 /** In-memory only: cleared on reload, never persisted. */
 const converted = [];
 let queue = Promise.resolve();
 
-loadEngine().then(
-  () => {
-    engineStatus.textContent = 'Engine ready — offline.';
-    engineStatus.classList.add('ready');
-  },
-  (error) => {
-    engineStatus.textContent = `Engine failed to load: ${error.message}`;
-    engineStatus.classList.add('error');
-  },
-);
+// Warm the engine up so the first conversion does not also pay to fetch it.
+// A failure needs no announcement here: convert() awaits this same promise and
+// reports the problem on the file's own card.
+loadEngine().catch(() => {});
 
 /* ------------------------------------------------------------------ */
 /* Intake                                                              */

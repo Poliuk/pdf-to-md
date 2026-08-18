@@ -91,6 +91,7 @@ output = output.replace(
   /Powered by\s*\n?\s*<a href="https:\/\/mozilla\.github\.io\/pdf\.js\/"[^>]*>pdf\.js<\/a>, bundled locally\./,
   () => 'Single file — pdf.js is built in.',
 );
+expect(/Single file — pdf\.js is built in\./.test(output), 'colophon text not found in index.html');
 
 await mkdir(new URL('dist/', root), { recursive: true });
 await writeFile(new URL('dist/pdf-to-md.html', root), output);
