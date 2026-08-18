@@ -89,12 +89,13 @@ expect(!/src="src\/app\.js"/.test(output), 'module script tag not found in index
 // A single file has no sibling to load, so say so on the page itself.
 output = output.replace(
   /Powered by\s*\n?\s*<a href="https:\/\/mozilla\.github\.io\/pdf\.js\/"[^>]*>pdf\.js<\/a>, bundled locally\./,
-  () => 'Single file — pdf.js is built in.',
+  () =>
+    'Single file. <a href="https://mozilla.github.io/pdf.js/" rel="noreferrer noopener">pdf.js</a> is built in.',
 );
-expect(/Single file — pdf\.js is built in\./.test(output), 'colophon text not found in index.html');
+expect(/Single file\. <a href="https:\/\/mozilla\.github\.io\/pdf\.js\/"[^>]*>pdf\.js<\/a> is built in\./.test(output), 'colophon text not found in index.html');
 
 await mkdir(new URL('dist/', root), { recursive: true });
 await writeFile(new URL('dist/pdf-to-md.html', root), output);
 
 const megabytes = (output.length / 1024 / 1024).toFixed(2);
-console.log(`built dist/pdf-to-md.html (${megabytes} MB) — open it directly in a browser`);
+console.log(`built dist/pdf-to-md.html (${megabytes} MB). Open it directly in a browser.`);

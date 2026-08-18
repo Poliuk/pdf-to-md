@@ -61,7 +61,7 @@ function accept(fileList) {
       // Convert one at a time: a single pdf.js worker, predictable memory.
       queue = queue.then(() => convert(file));
     } else {
-      createCard(file.name).fail('Not a PDF — skipped.');
+      createCard(file.name).fail('Skipped: not a PDF.');
     }
   }
 }
@@ -92,7 +92,7 @@ async function convert(file) {
       markdown,
       meta: `${stats.pages} page${stats.pages === 1 ? '' : 's'} · ${stats.words.toLocaleString()} words · ${elapsed} ms`,
       note: stats.likelyScanned
-        ? 'Almost no text found — this looks like a scan of images. Recognising text from images (OCR) is not something this offline converter does.'
+        ? 'Almost no text found. This looks like a scan of images, and recognising text from images (OCR) is not something this offline converter does.'
         : '',
       filename: name,
     });
@@ -105,7 +105,7 @@ async function convert(file) {
 
 function describeError(error) {
   const name = error?.name || '';
-  if (name === 'PasswordException') return 'Password required — conversion cancelled.';
+  if (name === 'PasswordException') return 'Password required. Conversion cancelled.';
   if (name === 'InvalidPDFException') return 'This file is not a valid PDF.';
   return error?.message || 'Conversion failed.';
 }
